@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { PlayerFace } from "@/components/player-face"
+import { cn } from "@/lib/utils"
 import type { Player } from "@/types/player"
 import { X } from "lucide-react"
 
@@ -24,11 +25,19 @@ const eur = new Intl.NumberFormat("ja-JP", {
   maximumFractionDigits: 0,
 })
 
-export function PlayerDetail({ player, onClose }: { player: Player | null; onClose: () => void }) {
+export function PlayerDetail({
+  player,
+  onClose,
+  className,
+}: {
+  player: Player | null
+  onClose: () => void
+  className?: string
+}) {
   if (!player) return null
 
   return (
-    <Card className="sticky top-5">
+    <Card className={cn(className)}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -81,7 +90,7 @@ export function PlayerDetail({ player, onClose }: { player: Player | null; onClo
 
         <Separator />
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        <dl className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
           <Info label="フルネーム" value={player.longName} wide />
           <Info label="リーグ" value={player.league || "—"} wide />
           <Info label="利き足" value={player.foot} />
@@ -105,7 +114,7 @@ export function PlayerDetail({ player, onClose }: { player: Player | null; onClo
 
 function Info({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
   return (
-    <div className={wide ? "col-span-2 min-w-0" : "min-w-0"}>
+    <div className={wide ? "min-w-0 sm:col-span-2" : "min-w-0"}>
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="truncate font-medium">{value}</dd>
     </div>
