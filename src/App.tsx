@@ -8,10 +8,9 @@ import { Slider } from "@/components/ui/slider"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PlayerDetail } from "@/components/player-detail"
 import { PlayerFace } from "@/components/player-face"
-import { StatCard } from "@/components/stat-card"
 import { loadPlayers } from "@/data/load-players"
 import type { Player, Position } from "@/types/player"
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Database, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Database, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react"
 
 const positions: Position[] = [
   "GK", "RB", "RWB", "CB", "LB", "LWB", "CDM", "CM", "CAM", "RM", "LM", "RW", "LW", "CF", "ST",
@@ -39,6 +38,7 @@ export default function App() {
   const [sortKey, setSortKey] = useState<SortKey>("overall")
   const [selected, setSelected] = useState<Player | null>(null)
   const [page, setPage] = useState(1)
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -161,6 +161,7 @@ export default function App() {
     setSortKey("overall")
     setSelected(null)
     setPage(1)
+    setShowFilters(false)
   }
 
   const togglePosition = (position: Position) => {
@@ -175,30 +176,36 @@ export default function App() {
     ? Math.round(filtered.reduce((sum, player) => sum + player.overall, 0) / filtered.length)
     : 0
   const highPotential = filtered.filter((player) => player.potential >= 90).length
+  const activeFilterCount =
+    (selectedPositions.length > 0 ? 1 : 0) +
+    (age[0] !== 15 || age[1] !== 45 ? 1 : 0) +
+    (ovr[0] !== 40 || ovr[1] !== 99 ? 1 : 0) +
+    (pot[0] !== 40 || pot[1] !== 99 ? 1 : 0) +
+    (club !== "ALL" ? 1 : 0) +
+    (league !== "ALL" ? 1 : 0) +
+    (nation !== "ALL" ? 1 : 0)
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card/80 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-col items-stretch gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-4 lg:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Database />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <h1 className="font-semibold">FC26 Scout Database</h1>
-                <Badge variant="secondary">FC 26</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">Career Mode player search</p>
-            </div>
+        <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-3 py-2.5 sm:px-4 lg:px-6">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Database />
           </div>
-          <Badge variant="outline" className="self-start sm:self-auto">
-            {loading ? "Loading…" : `${players.length.toLocaleString()} players`}
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate font-semibold">FC26 Scout Database</h1>
+              <Badge variant="secondary">FC 26</Badge>
+            </div>
+            <p className="hidden text-xs text-muted-foreground sm:block">Career Mode player search</p>
+          </div>
+          <Badge variant="outline" className="shrink-0">
+            {loading ? "…" : players.length.toLocaleString()}
           </Badge>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 py-3 sm:gap-5 sm:px-4 sm:py-5 lg:px-6">
+      <main className="mx-auto flex max-w-[1600px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:px-6">
         {loadError && (
           <Card>
             <CardHeader>
@@ -208,21 +215,49 @@ export default function App() {
           </Card>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <StatCard label="検索結果" value={loading ? "…" : filtered.length.toLocaleString()} detail={`${players.length.toLocaleString()}件中`} />
-          <StatCard label="平均OVR" value={loading ? "…" : String(avgOvr)} detail="現在の絞り込み" />
-          <StatCard label="POT 90+" value={loading ? "…" : String(highPotential)} detail="将来性候補" />
-        </div>
+        <section className="flex flex-col gap-2" aria-label="選手検索">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="選手名・クラブ・国籍・リーグ"
+                aria-label="選手を検索"
+              />
+            </div>
+            <Button
+              type="button"
+              variant={activeFilterCount > 0 ? "secondary" : "outline"}
+              onClick={() => setShowFilters((current) => !current)}
+              aria-expanded={showFilters}
+              aria-controls="advanced-filters"
+            >
+              <SlidersHorizontal data-icon="inline-start" />
+              絞り込み{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            </Button>
+          </div>
 
-        <Card>
+          {activeFilterCount > 0 && !showFilters && (
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                {activeFilterCount}個の絞り込み条件を適用中
+              </p>
+              <Button variant="ghost" size="sm" onClick={reset}>
+                <RotateCcw data-icon="inline-start" />
+                解除
+              </Button>
+            </div>
+          )}
+        </section>
+
+        <Card id="advanced-filters" className={showFilters ? "" : "hidden md:block"}>
           <CardHeader>
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <CardTitle className="flex items-center gap-2">
-                  <SlidersHorizontal />
-                  検索条件
-                </CardTitle>
-                <CardDescription>名前・複数ポジション・年齢・OVR・POT・クラブ・リーグ・国籍から検索</CardDescription>
+                <CardTitle>絞り込み</CardTitle>
+                <CardDescription>ポジション・年齢・OVR・POT・クラブ・リーグ・国籍</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={reset}>
                 <RotateCcw data-icon="inline-start" />
@@ -231,24 +266,7 @@ export default function App() {
             </div>
           </CardHeader>
 
-          <CardContent className="flex flex-col gap-5">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <label className="flex flex-col gap-2 text-sm xl:col-span-2">
-                <span className="font-medium">選手検索</span>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="選手名 / クラブ / 国籍 / リーグ"
-                  />
-                </div>
-              </label>
-              <FilterSelect label="リーグ" value={league} onChange={setLeague} options={leagues} />
-              <FilterSelect label="国籍" value={nation} onChange={setNation} options={nations} />
-            </div>
-
+          <CardContent className="flex flex-col gap-4">
             <PositionFilter
               selected={selectedPositions}
               matchMode={positionMatchMode}
@@ -257,8 +275,13 @@ export default function App() {
               onMatchModeChange={setPositionMatchMode}
             />
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
               <FilterSelect label="クラブ" value={club} onChange={setClub} options={clubs} />
+              <FilterSelect label="リーグ" value={league} onChange={setLeague} options={leagues} />
+              <FilterSelect label="国籍" value={nation} onChange={setNation} options={nations} />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
               <RangeFilter label="年齢" value={age} min={15} max={45} onChange={setAge} />
               <RangeFilter label="OVR" value={ovr} min={40} max={99} onChange={setOvr} />
               <RangeFilter label="POT" value={pot} min={40} max={99} onChange={setPot} />
@@ -269,31 +292,30 @@ export default function App() {
         <div className={selected ? "grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]" : "grid gap-5"}>
           <Card>
             <CardHeader>
-              <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <CardTitle>Players</CardTitle>
+                  <CardTitle>
+                    {loading ? "Players" : `${filtered.length.toLocaleString()} players`}
+                  </CardTitle>
                   <CardDescription>
                     {loading
                       ? "選手データを読み込み中…"
-                      : `${filtered.length.toLocaleString()}件 · ${safePage} / ${pageCount} ページ`}
+                      : `平均OVR ${avgOvr} · POT90+ ${highPotential} · ${safePage}/${pageCount}ページ`}
                   </CardDescription>
                 </div>
-                <div className="flex w-full items-center gap-2 sm:w-auto">
-                  <ArrowDownAZ className="shrink-0 text-muted-foreground" />
-                  <Select value={sortKey} onValueChange={(value) => setSortKey(value as SortKey)}>
-                    <SelectTrigger className="w-full sm:w-44">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="overall">OVR 高い順</SelectItem>
-                        <SelectItem value="potential">POT 高い順</SelectItem>
-                        <SelectItem value="age">年齢 若い順</SelectItem>
-                        <SelectItem value="valueEur">市場価値 高い順</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={sortKey} onValueChange={(value) => setSortKey(value as SortKey)}>
+                  <SelectTrigger className="w-36 shrink-0 sm:w-44" aria-label="並び順">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="overall">OVR 高い順</SelectItem>
+                      <SelectItem value="potential">POT 高い順</SelectItem>
+                      <SelectItem value="age">年齢 若い順</SelectItem>
+                      <SelectItem value="valueEur">市場価値 高い順</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             </CardHeader>
 
