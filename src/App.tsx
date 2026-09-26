@@ -61,6 +61,27 @@ export default function App() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!selected) return
+
+    const compactLayout = window.matchMedia("(max-width: 1279px)")
+    if (!compactLayout.matches) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelected(null)
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [selected])
+
   const clubs = useMemo(
     () => ["ALL", ...Array.from(new Set(players.map((player) => player.club).filter(Boolean))).sort()],
     [players],
@@ -158,26 +179,26 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card/80 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-4 lg:px-6">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-[1600px] flex-col items-stretch gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-4 lg:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Database />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <h1 className="font-semibold">FC26 Scout Database</h1>
                 <Badge variant="secondary">FC 26</Badge>
               </div>
               <p className="text-xs text-muted-foreground">Career Mode player search</p>
             </div>
           </div>
-          <Badge variant="outline">
+          <Badge variant="outline" className="self-start sm:self-auto">
             {loading ? "Loading…" : `${players.length.toLocaleString()} players`}
           </Badge>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-[1600px] flex-col gap-5 px-4 py-5 lg:px-6">
+      <main className="mx-auto flex max-w-[1600px] flex-col gap-4 px-3 py-3 sm:gap-5 sm:px-4 sm:py-5 lg:px-6">
         {loadError && (
           <Card>
             <CardHeader>
@@ -195,8 +216,8 @@ export default function App() {
 
         <Card>
           <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <CardTitle className="flex items-center gap-2">
                   <SlidersHorizontal />
                   検索条件
@@ -248,8 +269,8 @@ export default function App() {
         <div className={selected ? "grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]" : "grid gap-5"}>
           <Card>
             <CardHeader>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+              <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <CardTitle>Players</CardTitle>
                   <CardDescription>
                     {loading
@@ -257,10 +278,10 @@ export default function App() {
                       : `${filtered.length.toLocaleString()}件 · ${safePage} / ${pageCount} ページ`}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <ArrowDownAZ className="text-muted-foreground" />
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  <ArrowDownAZ className="shrink-0 text-muted-foreground" />
                   <Select value={sortKey} onValueChange={(value) => setSortKey(value as SortKey)}>
-                    <SelectTrigger className="w-44">
+                    <SelectTrigger className="w-full sm:w-44">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -281,10 +302,10 @@ export default function App() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Player</TableHead>
-                    <TableHead>POS</TableHead>
-                    <TableHead className="text-right">AGE</TableHead>
+                    <TableHead className="hidden sm:table-cell">POS</TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">AGE</TableHead>
                     <TableHead className="text-right">OVR</TableHead>
-                    <TableHead className="text-right">POT</TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">POT</TableHead>
                     <TableHead className="hidden text-right md:table-cell">PAC</TableHead>
                     <TableHead className="hidden text-right lg:table-cell">PAS</TableHead>
                     <TableHead className="hidden xl:table-cell">Club</TableHead>
@@ -308,13 +329,19 @@ export default function App() {
                             className="size-9 rounded-md"
                             loading="lazy"
                           />
-                          <div className="flex min-w-0 flex-col gap-0.5">
+                          <div className="flex min-w-0 flex-col gap-1">
                             <span className="truncate font-medium">{player.name}</span>
                             <span className="truncate text-xs text-muted-foreground xl:hidden">{player.club}</span>
+                            <div className="flex min-w-0 flex-wrap items-center gap-1 sm:hidden">
+                              <Badge>{player.position}</Badge>
+                              <span className="truncate text-xs text-muted-foreground">
+                                {player.age}歳 · POT {player.potential}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex max-w-56 flex-wrap gap-1">
                           <Badge>{player.position}</Badge>
                           {player.secondaryPositions.map((position) => (
@@ -322,9 +349,9 @@ export default function App() {
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{player.age}</TableCell>
+                      <TableCell className="hidden text-right tabular-nums sm:table-cell">{player.age}</TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">{player.overall}</TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">{player.potential}</TableCell>
+                      <TableCell className="hidden text-right font-semibold tabular-nums sm:table-cell">{player.potential}</TableCell>
                       <TableCell className="hidden text-right tabular-nums md:table-cell">{displayStat(player.pace)}</TableCell>
                       <TableCell className="hidden text-right tabular-nums lg:table-cell">{displayStat(player.passing)}</TableCell>
                       <TableCell className="hidden max-w-48 truncate text-muted-foreground xl:table-cell">{player.club}</TableCell>
@@ -348,14 +375,15 @@ export default function App() {
                 </TableBody>
               </Table>
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">
+              <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+                <p className="text-center text-xs text-muted-foreground sm:text-left">
                   {filtered.length > 0
                     ? `${((safePage - 1) * PAGE_SIZE + 1).toLocaleString()}–${Math.min(safePage * PAGE_SIZE, filtered.length).toLocaleString()} / ${filtered.length.toLocaleString()}`
                     : "0件"}
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                   <Button
+                    className="w-full sm:w-auto"
                     variant="outline"
                     size="sm"
                     disabled={safePage <= 1}
@@ -365,6 +393,7 @@ export default function App() {
                     前へ
                   </Button>
                   <Button
+                    className="w-full sm:w-auto"
                     variant="outline"
                     size="sm"
                     disabled={safePage >= pageCount}
@@ -378,8 +407,29 @@ export default function App() {
             </CardContent>
           </Card>
 
-          <PlayerDetail player={selected} onClose={() => setSelected(null)} />
+          <div className="hidden xl:block">
+            <PlayerDetail
+              player={selected}
+              onClose={() => setSelected(null)}
+              className="sticky top-5"
+            />
+          </div>
         </div>
+
+        {selected && (
+          <div
+            className="fixed inset-0 overflow-y-auto overscroll-contain bg-background p-3 xl:hidden sm:p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selected.name}の選手詳細`}
+          >
+            <PlayerDetail
+              player={selected}
+              onClose={() => setSelected(null)}
+              className="min-h-[calc(100vh-1.5rem)] sm:min-h-0"
+            />
+          </div>
+        )}
       </main>
     </div>
   )
@@ -400,8 +450,8 @@ function PositionFilter({
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <div className="text-sm font-medium">ポジション</div>
           <div className="text-xs text-muted-foreground">
             複数選択できます。未選択の場合は全ポジションを対象にします。
@@ -417,7 +467,7 @@ function PositionFilter({
             </Button>
           )}
           <Select value={matchMode} onValueChange={(value) => onMatchModeChange(value as PositionMatchMode)}>
-            <SelectTrigger className="w-52">
+            <SelectTrigger className="w-full sm:w-52">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -430,7 +480,7 @@ function PositionFilter({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="ポジションを選択">
+      <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap" role="group" aria-label="ポジションを選択">
         {positions.map((position) => {
           const isSelected = selected.includes(position)
           return (
