@@ -12,8 +12,27 @@ import { loadPlayers } from "@/data/load-players"
 import type { Player, Position } from "@/types/player"
 import { ChevronLeft, ChevronRight, Database, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react"
 
-const positions: Position[] = [
-  "GK", "RB", "RWB", "CB", "LB", "LWB", "CDM", "CM", "CAM", "RM", "LM", "RW", "LW", "CF", "ST",
+const positionLayout: { position: Position; x: number; y: number }[] = [
+  { position: "ST", x: 50, y: 9 },
+
+  { position: "LW", x: 18, y: 22 },
+  { position: "CF", x: 50, y: 22 },
+  { position: "RW", x: 82, y: 22 },
+
+  { position: "LM", x: 16, y: 39 },
+  { position: "CAM", x: 50, y: 37 },
+  { position: "RM", x: 84, y: 39 },
+
+  { position: "LWB", x: 11, y: 58 },
+  { position: "CM", x: 50, y: 50 },
+  { position: "RWB", x: 89, y: 58 },
+  { position: "CDM", x: 50, y: 62 },
+
+  { position: "LB", x: 20, y: 76 },
+  { position: "CB", x: 50, y: 76 },
+  { position: "RB", x: 80, y: 76 },
+
+  { position: "GK", x: 50, y: 91 },
 ]
 
 type PositionMatchMode = "any" | "all"
@@ -502,22 +521,45 @@ function PositionFilter({
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap" role="group" aria-label="ポジションを選択">
-        {positions.map((position) => {
-          const isSelected = selected.includes(position)
-          return (
-            <Button
-              key={position}
-              type="button"
-              size="sm"
-              variant={isSelected ? "default" : "outline"}
-              aria-pressed={isSelected}
-              onClick={() => onToggle(position)}
-            >
-              {position}
-            </Button>
-          )
-        })}
+      <div className="flex flex-col gap-2">
+        <div
+          className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-xl border bg-muted"
+          role="group"
+          aria-label="ピッチ上からポジションを選択"
+        >
+          <div className="pointer-events-none absolute inset-4 rounded-lg border border-muted-foreground/40" />
+          <div className="pointer-events-none absolute left-4 right-4 top-1/2 border-t border-muted-foreground/40" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-muted-foreground/40" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-muted-foreground/50" />
+
+          <div className="pointer-events-none absolute left-1/2 top-4 h-16 w-32 -translate-x-1/2 rounded-b-lg border-x border-b border-muted-foreground/40" />
+          <div className="pointer-events-none absolute left-1/2 top-4 h-8 w-16 -translate-x-1/2 rounded-b-md border-x border-b border-muted-foreground/40" />
+          <div className="pointer-events-none absolute bottom-4 left-1/2 h-16 w-32 -translate-x-1/2 rounded-t-lg border-x border-t border-muted-foreground/40" />
+          <div className="pointer-events-none absolute bottom-4 left-1/2 h-8 w-16 -translate-x-1/2 rounded-t-md border-x border-t border-muted-foreground/40" />
+
+          {positionLayout.map(({ position, x, y }) => {
+            const isSelected = selected.includes(position)
+            return (
+              <Button
+                key={position}
+                type="button"
+                size="sm"
+                variant={isSelected ? "default" : "outline"}
+                className="absolute min-w-12 -translate-x-1/2 -translate-y-1/2"
+                style={{ left: `${x}%`, top: `${y}%` }}
+                aria-pressed={isSelected}
+                aria-label={`${position}${isSelected ? " 選択中" : ""}`}
+                onClick={() => onToggle(position)}
+              >
+                {position}
+              </Button>
+            )
+          })}
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          ピッチ上のポジションをタップして複数選択できます。
+        </p>
       </div>
 
       {selected.length > 1 && (
