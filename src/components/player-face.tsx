@@ -3,20 +3,33 @@ import { cn } from "@/lib/utils"
 
 export function PlayerFace({
   src,
+  playerId,
   name,
   className,
   loading,
 }: {
   src: string
+  playerId?: number
   name: string
   className?: string
   loading?: "eager" | "lazy"
 }) {
-  const [failed, setFailed] = useState(false)
+  const sources = useMemo(() => {
+    const candidates = [
+      src,
+      playerId
+        ? `https://fco.dn.nexoncdn.co.kr/live/externalAssets/common/players/p${playerId}.png`
+        : "",
+    ]
+
+    return Array.from(new Set(candidates.filter(Boolean)))
+  }, [playerId, src])
+
+  const [sourceIndex, setSourceIndex] = useState(0)
 
   useEffect(() => {
-    setFailed(false)
-  }, [src])
+    setSourceIndex(0)
+  }, [sources])
 
   const initials = useMemo(() => {
     const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -25,7 +38,9 @@ export function PlayerFace({
     return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase()
   }, [name])
 
-  if (failed || !src) {
+  const currentSrc = sources[sourceIndex] ?? ""
+
+  if (!currentSrc) {
     return (
       <div
         className={cn(
@@ -42,12 +57,12 @@ export function PlayerFace({
 
   return (
     <img
-      src={src}
+      src={currentSrc}
       alt={`${name}の選手画像`}
       className={cn("shrink-0 bg-muted object-cover", className)}
       loading={loading}
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
+      decoding="async"
+      onError={() => setSourceIndex((index) => index + 1)}
     />
   )
 }
