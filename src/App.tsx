@@ -303,6 +303,7 @@ export default function App() {
                         <div className="flex items-center gap-3">
                           <PlayerFace
                             src={player.faceUrl}
+                            playerId={player.id}
                             name={player.name}
                             className="size-9 rounded-md"
                             loading="lazy"
