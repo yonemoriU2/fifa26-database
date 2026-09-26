@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { PlayerFace } from "@/components/player-face"
 import type { Player } from "@/types/player"
 import { X } from "lucide-react"
 
@@ -31,14 +32,17 @@ export function PlayerDetail({ player, onClose }: { player: Player | null; onClo
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <img
+            <PlayerFace
               src={player.faceUrl}
-              alt=""
-              className="size-16 rounded-lg bg-muted object-cover"
+              name={player.name}
+              className="size-16 rounded-lg"
             />
             <div className="flex min-w-0 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge>{player.position}</Badge>
+                {player.secondaryPositions.map((position) => (
+                  <Badge key={position} variant="outline">{position}</Badge>
+                ))}
                 <Badge variant="outline">{player.age}歳</Badge>
               </div>
               <CardTitle className="truncate text-xl">{player.name}</CardTitle>
@@ -88,8 +92,8 @@ export function PlayerDetail({ player, onClose }: { player: Player | null; onClo
           <Info label="市場価値" value={player.valueEur != null ? eur.format(player.valueEur) : "—"} wide />
           <Info label="週給" value={player.wageEur != null ? eur.format(player.wageEur) : "—"} wide />
           <Info
-            label="サブポジション"
-            value={player.secondaryPositions.length ? player.secondaryPositions.join(" / ") : "—"}
+            label="対応ポジション"
+            value={[player.position, ...player.secondaryPositions].join(" / ")}
             wide
           />
         </dl>
