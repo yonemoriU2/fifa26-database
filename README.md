@@ -97,3 +97,8 @@ public/
     ...
     players-12.json
 ```
+
+## 公開URL
+
+GitHub Pages: https://yonemoriu2.github.io/fifa26-database/
+
