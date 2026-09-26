@@ -5,40 +5,108 @@ import { Separator } from "@/components/ui/separator"
 import type { Player } from "@/types/player"
 import { X } from "lucide-react"
 
-const stats: Array<[keyof Pick<Player, "pace" | "shooting" | "passing" | "dribbling" | "defending" | "physical">, string]> = [
-  ["pace", "PAC"], ["shooting", "SHO"], ["passing", "PAS"], ["dribbling", "DRI"], ["defending", "DEF"], ["physical", "PHY"]
+const stats: Array<[
+  keyof Pick<Player, "pace" | "shooting" | "passing" | "dribbling" | "defending" | "physical">,
+  string,
+]> = [
+  ["pace", "PAC"],
+  ["shooting", "SHO"],
+  ["passing", "PAS"],
+  ["dribbling", "DRI"],
+  ["defending", "DEF"],
+  ["physical", "PHY"],
 ]
+
+const eur = new Intl.NumberFormat("ja-JP", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+})
 
 export function PlayerDetail({ player, onClose }: { player: Player | null; onClose: () => void }) {
   if (!player) return null
+
   return (
     <Card className="sticky top-5">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2"><Badge>{player.position}</Badge><Badge variant="outline">{player.age}歳</Badge></div>
-            <CardTitle className="text-xl">{player.name}</CardTitle>
-            <CardDescription>{player.club} · {player.nationality}</CardDescription>
+          <div className="flex min-w-0 items-center gap-3">
+            <img
+              src={player.faceUrl}
+              alt=""
+              className="size-16 rounded-lg bg-muted object-cover"
+            />
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{player.position}</Badge>
+                <Badge variant="outline">{player.age}歳</Badge>
+              </div>
+              <CardTitle className="truncate text-xl">{player.name}</CardTitle>
+              <CardDescription className="truncate">{player.club} · {player.nationality}</CardDescription>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="閉じる"><X data-icon="inline-start" /></Button>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="閉じる">
+            <X data-icon="inline-start" />
+          </Button>
         </div>
       </CardHeader>
+
       <CardContent className="flex flex-col gap-5">
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg bg-muted p-3"><div className="text-xs text-muted-foreground">OVR</div><div className="text-3xl font-semibold tabular-nums">{player.overall}</div></div>
-          <div className="rounded-lg bg-muted p-3"><div className="text-xs text-muted-foreground">POT</div><div className="text-3xl font-semibold tabular-nums">{player.potential}</div></div>
+          <div className="rounded-lg bg-muted p-3">
+            <div className="text-xs text-muted-foreground">OVR</div>
+            <div className="text-3xl font-semibold tabular-nums">{player.overall}</div>
+          </div>
+          <div className="rounded-lg bg-muted p-3">
+            <div className="text-xs text-muted-foreground">POT</div>
+            <div className="text-3xl font-semibold tabular-nums">{player.potential}</div>
+          </div>
         </div>
+
         <Separator />
+
         <div className="grid grid-cols-3 gap-2">
-          {stats.map(([key, label]) => <div key={key} className="rounded-md border p-2 text-center"><div className="text-xs text-muted-foreground">{label}</div><div className="text-lg font-semibold tabular-nums">{player[key]}</div></div>)}
+          {stats.map(([key, label]) => (
+            <div key={key} className="rounded-md border p-2 text-center">
+              <div className="text-xs text-muted-foreground">{label}</div>
+              <div className="text-lg font-semibold tabular-nums">{player[key] ?? "—"}</div>
+            </div>
+          ))}
         </div>
+
         <Separator />
+
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <div><dt className="text-muted-foreground">利き足</dt><dd className="font-medium">{player.foot}</dd></div>
-          <div><dt className="text-muted-foreground">市場価値</dt><dd className="font-medium">€{player.valueM}M</dd></div>
-          <div className="col-span-2"><dt className="text-muted-foreground">サブポジション</dt><dd className="font-medium">{player.secondaryPositions.length ? player.secondaryPositions.join(" / ") : "—"}</dd></div>
+          <Info label="フルネーム" value={player.longName} wide />
+          <Info label="リーグ" value={player.league || "—"} wide />
+          <Info label="利き足" value={player.foot} />
+          <Info label="生年月日" value={player.dateOfBirth || "—"} />
+          <Info label="身長" value={player.heightCm ? `${player.heightCm} cm` : "—"} />
+          <Info label="体重" value={player.weightKg ? `${player.weightKg} kg` : "—"} />
+          <Info label="弱い足" value={stars(player.weakFoot)} />
+          <Info label="スキルムーブ" value={stars(player.skillMoves)} />
+          <Info label="市場価値" value={player.valueEur != null ? eur.format(player.valueEur) : "—"} wide />
+          <Info label="週給" value={player.wageEur != null ? eur.format(player.wageEur) : "—"} wide />
+          <Info
+            label="サブポジション"
+            value={player.secondaryPositions.length ? player.secondaryPositions.join(" / ") : "—"}
+            wide
+          />
         </dl>
       </CardContent>
     </Card>
   )
+}
+
+function Info({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={wide ? "col-span-2 min-w-0" : "min-w-0"}>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="truncate font-medium">{value}</dd>
+    </div>
+  )
+}
+
+function stars(value: number | null) {
+  return value == null ? "—" : `${value} / 5`
 }
