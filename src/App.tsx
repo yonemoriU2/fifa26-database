@@ -7,15 +7,17 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Slider } from "@/components/ui/slider"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PlayerDetail } from "@/components/player-detail"
+import { PlayerFace } from "@/components/player-face"
 import { StatCard } from "@/components/stat-card"
 import { loadPlayers } from "@/data/load-players"
 import type { Player, Position } from "@/types/player"
-import { ArrowDownAZ, ChevronLeft, ChevronRight, Database, RotateCcw, Search, SlidersHorizontal } from "lucide-react"
+import { ArrowDownAZ, ChevronLeft, ChevronRight, Database, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react"
 
-const positions: Array<Position | "ALL"> = [
-  "ALL", "GK", "RB", "RWB", "CB", "LB", "LWB", "CDM", "CM", "CAM", "RM", "LM", "RW", "LW", "CF", "ST",
+const positions: Position[] = [
+  "GK", "RB", "RWB", "CB", "LB", "LWB", "CDM", "CM", "CAM", "RM", "LM", "RW", "LW", "CF", "ST",
 ]
 
+type PositionMatchMode = "any" | "all"
 type SortKey = "overall" | "potential" | "age" | "valueEur"
 
 const PAGE_SIZE = 100
@@ -26,7 +28,8 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null)
 
   const [query, setQuery] = useState("")
-  const [position, setPosition] = useState<Position | "ALL">("ALL")
+  const [selectedPositions, setSelectedPositions] = useState<Position[]>([])
+  const [positionMatchMode, setPositionMatchMode] = useState<PositionMatchMode>("any")
   const [age, setAge] = useState<[number, number]>([15, 45])
   const [ovr, setOvr] = useState<[number, number]>([40, 99])
   const [pot, setPot] = useState<[number, number]>([40, 99])
@@ -80,7 +83,17 @@ export default function App() {
         return [player.name, player.longName, player.club, player.nationality, player.league]
           .some((value) => value.toLowerCase().includes(normalizedQuery))
       })
-      .filter((player) => position === "ALL" || player.position === position || player.secondaryPositions.includes(position))
+      .filter((player) => {
+        if (selectedPositions.length === 0) return true
+
+        const availablePositions = new Set<Position>([player.position, ...player.secondaryPositions])
+
+        if (positionMatchMode === "all") {
+          return selectedPositions.every((position) => availablePositions.has(position))
+        }
+
+        return selectedPositions.some((position) => availablePositions.has(position))
+      })
       .filter((player) => player.age >= age[0] && player.age <= age[1])
       .filter((player) => player.overall >= ovr[0] && player.overall <= ovr[1])
       .filter((player) => player.potential >= pot[0] && player.potential <= pot[1])
@@ -92,11 +105,23 @@ export default function App() {
         if (sortKey === "valueEur") return (b.valueEur ?? -1) - (a.valueEur ?? -1)
         return b[sortKey] - a[sortKey]
       })
-  }, [players, query, position, age, ovr, pot, club, league, nation, sortKey])
+  }, [
+    players,
+    query,
+    selectedPositions,
+    positionMatchMode,
+    age,
+    ovr,
+    pot,
+    club,
+    league,
+    nation,
+    sortKey,
+  ])
 
   useEffect(() => {
     setPage(1)
-  }, [query, position, age, ovr, pot, club, league, nation, sortKey])
+  }, [query, selectedPositions, positionMatchMode, age, ovr, pot, club, league, nation, sortKey])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, pageCount)
@@ -104,7 +129,8 @@ export default function App() {
 
   const reset = () => {
     setQuery("")
-    setPosition("ALL")
+    setSelectedPositions([])
+    setPositionMatchMode("any")
     setAge([15, 45])
     setOvr([40, 99])
     setPot([40, 99])
@@ -114,6 +140,14 @@ export default function App() {
     setSortKey("overall")
     setSelected(null)
     setPage(1)
+  }
+
+  const togglePosition = (position: Position) => {
+    setSelectedPositions((current) =>
+      current.includes(position)
+        ? current.filter((item) => item !== position)
+        : [...current, position],
+    )
   }
 
   const avgOvr = filtered.length
@@ -167,7 +201,7 @@ export default function App() {
                   <SlidersHorizontal />
                   検索条件
                 </CardTitle>
-                <CardDescription>名前・ポジション・年齢・OVR・POT・クラブ・リーグ・国籍から検索</CardDescription>
+                <CardDescription>名前・複数ポジション・年齢・OVR・POT・クラブ・リーグ・国籍から検索</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={reset}>
                 <RotateCcw data-icon="inline-start" />
@@ -175,8 +209,9 @@ export default function App() {
               </Button>
             </div>
           </CardHeader>
+
           <CardContent className="flex flex-col gap-5">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <label className="flex flex-col gap-2 text-sm xl:col-span-2">
                 <span className="font-medium">選手検索</span>
                 <div className="relative">
@@ -189,15 +224,17 @@ export default function App() {
                   />
                 </div>
               </label>
-              <FilterSelect
-                label="ポジション"
-                value={position}
-                onChange={(value) => setPosition(value as Position | "ALL")}
-                options={positions}
-              />
               <FilterSelect label="リーグ" value={league} onChange={setLeague} options={leagues} />
               <FilterSelect label="国籍" value={nation} onChange={setNation} options={nations} />
             </div>
+
+            <PositionFilter
+              selected={selectedPositions}
+              matchMode={positionMatchMode}
+              onToggle={togglePosition}
+              onClear={() => setSelectedPositions([])}
+              onMatchModeChange={setPositionMatchMode}
+            />
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <FilterSelect label="クラブ" value={club} onChange={setClub} options={clubs} />
@@ -264,10 +301,10 @@ export default function App() {
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <img
+                          <PlayerFace
                             src={player.faceUrl}
-                            alt=""
-                            className="size-9 rounded-md bg-muted object-cover"
+                            name={player.name}
+                            className="size-9 rounded-md"
                             loading="lazy"
                           />
                           <div className="flex min-w-0 flex-col gap-0.5">
@@ -276,7 +313,14 @@ export default function App() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell><Badge variant="outline">{player.position}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex max-w-56 flex-wrap gap-1">
+                          <Badge>{player.position}</Badge>
+                          {player.secondaryPositions.map((position) => (
+                            <Badge key={position} variant="outline">{position}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">{player.age}</TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">{player.overall}</TableCell>
                       <TableCell className="text-right font-semibold tabular-nums">{player.potential}</TableCell>
@@ -336,6 +380,80 @@ export default function App() {
           <PlayerDetail player={selected} onClose={() => setSelected(null)} />
         </div>
       </main>
+    </div>
+  )
+}
+
+function PositionFilter({
+  selected,
+  matchMode,
+  onToggle,
+  onClear,
+  onMatchModeChange,
+}: {
+  selected: Position[]
+  matchMode: PositionMatchMode
+  onToggle: (position: Position) => void
+  onClear: () => void
+  onMatchModeChange: (mode: PositionMatchMode) => void
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-medium">ポジション</div>
+          <div className="text-xs text-muted-foreground">
+            複数選択できます。未選択の場合は全ポジションを対象にします。
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{selected.length} 選択</Badge>
+          {selected.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={onClear}>
+              <X data-icon="inline-start" />
+              解除
+            </Button>
+          )}
+          <Select value={matchMode} onValueChange={(value) => onMatchModeChange(value as PositionMatchMode)}>
+            <SelectTrigger className="w-52">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="any">いずれかに対応（OR）</SelectItem>
+                <SelectItem value="all">すべてに対応（AND）</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label="ポジションを選択">
+        {positions.map((position) => {
+          const isSelected = selected.includes(position)
+          return (
+            <Button
+              key={position}
+              type="button"
+              size="sm"
+              variant={isSelected ? "default" : "outline"}
+              aria-pressed={isSelected}
+              onClick={() => onToggle(position)}
+            >
+              {position}
+            </Button>
+          )
+        })}
+      </div>
+
+      {selected.length > 1 && (
+        <div className="text-xs text-muted-foreground">
+          {matchMode === "any"
+            ? `「${selected.join(" / ")}」のうち、1つでも対応できる選手を表示しています。`
+            : `「${selected.join(" / ")}」のすべてに対応できる選手のみ表示しています。`}
+        </div>
+      )}
     </div>
   )
 }
