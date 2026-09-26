@@ -34,6 +34,7 @@ export function PlayerDetail({ player, onClose }: { player: Player | null; onClo
           <div className="flex min-w-0 items-center gap-3">
             <PlayerFace
               src={player.faceUrl}
+              playerId={player.id}
               name={player.name}
               className="size-16 rounded-lg"
             />
