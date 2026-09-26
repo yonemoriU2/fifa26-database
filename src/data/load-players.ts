@@ -32,12 +32,13 @@ const CHUNK_COUNT = 13
 
 function normalizePlayer(player: CompactPlayer): Player {
   const positions = player.p as Position[]
+
   return {
     id: player.id,
     name: player.n,
     longName: player.ln,
-    club: player.c,
-    league: player.l,
+    club: player.c || "Free Agent",
+    league: player.l || "Free Agent",
     nationality: player.nat,
     position: positions[0] ?? "CM",
     secondaryPositions: positions.slice(1),
@@ -67,9 +68,11 @@ export async function loadPlayers(): Promise<Player[]> {
     Array.from({ length: CHUNK_COUNT }, async (_, index) => {
       const file = `data/players-${String(index).padStart(2, "0")}.json`
       const response = await fetch(file)
+
       if (!response.ok) {
         throw new Error(`Failed to load ${file}: ${response.status}`)
       }
+
       return (await response.json()) as CompactPlayer[]
     }),
   )
